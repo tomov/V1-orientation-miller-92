@@ -124,3 +124,4 @@ surf(Z,'EdgeColor','None');
 
 
 lambda_dt = 0.0012; % 'excit': 0.0012; 'excit/inhib': 0.0019
+

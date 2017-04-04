@@ -1,6 +1,8 @@
-maxX = 31; % dimension of grid
+miller92_sanity; % include lambdas
 
-[X,Y] = meshgrid(1:1:31);
+maxX = 10; % dimension of grid
+
+[X,Y] = meshgrid(1:1:maxX);
 id_to_coords = [X(:) Y(:)]; % mapping of coordinates to index
 coords_to_id = zeros(size(X)); % mapping of index to coordinates
 for id = 1:size(id_to_coords, 1)
@@ -14,21 +16,66 @@ N = numel(X); % number of neurons in each layer
 S_ON = zeros(N, N);
 S_OFF = zeros(N, N);
 
+rng('default');
+
 for x_id = 1:N
     x = id_to_coords(x_id, :);
     for alpha_id = 1:N
         alpha = id_to_coords(alpha_id, :);
-        S_ON(x_id, alpha_id) = (rand * 0.4 + 0.8) * A([y1 y2]);
-        S_OFF(y1, y2) = (rand * 0.4 + 0.8) * A([y1 y2]);
+        S_ON(x_id, alpha_id) = (rand * 0.4 + 0.8) * A(x - alpha);
+        S_OFF(x_id, alpha_id) = (rand * 0.4 + 0.8) * A(x - alpha);
     end
 end
 
 
 
-x = LS([3 4], [1 2], S_ON, S_OFF);
+[ds_on, ds_off] = LS([3 4], [2 5], S_ON, S_OFF, id_to_coords)
 
-function [LS_ON, LS_OFF] = LS(x, alpha, S_ON, S_OFF)
-    maxX = 31;
+[ds_on, ds_off] = dS([3 4], [3 4], S_ON, S_OFF, id_to_coords)
+
+
+%{
+[X,Y] = meshgrid(1 : maxX);
+Z_ON = zeros(size(X));
+Z_OFF = zeros(size(X));
+for i = 1:size(X, 1)
+    for j = 1:size(X, 2)
+        x = [X(i, j), Y(i, j)];
+        [ls_on, ls_off] = LS([3 4], [i j], S_ON, S_OFF, id_to_coords)
+        Z_ON(i, j) = ls_on;
+        Z_OFF(i, j) = ls_off;
+        assert(isreal(Z_ON(i, j)));
+        assert(isreal(Z_OFF(i, j)));
+    end
+end
+figure;
+surf(Z_OFF,'EdgeColor','None');
+%}
+
+
+[X,Y] = meshgrid(1 : maxX);
+Z_ON = zeros(size(X));
+Z_OFF = zeros(size(X));
+for i = 1:size(X, 1)
+    for j = 1:size(X, 2)
+        x = [X(i, j), Y(i, j)];
+        [ds_on, ds_off] = dS([3 4], [i j], S_ON, S_OFF, id_to_coords)
+        Z_ON(i, j) = ds_on;
+        Z_OFF(i, j) = ds_off;
+        assert(isreal(Z_ON(i, j)));
+        assert(isreal(Z_OFF(i, j)));
+    end
+end
+figure;
+surf(Z_ON,'EdgeColor','None');
+
+
+
+% technically LS * dt
+%
+function [LS_ON, LS_OFF] = LS(x, alpha, S_ON, S_OFF, id_to_coords)
+    maxX = 10;
+    N = maxX * maxX;
     
     R = 5.5;
     G = @(x, r) exp(- norm(x) / (r * R)^2);
@@ -52,46 +99,42 @@ function [LS_ON, LS_OFF] = LS(x, alpha, S_ON, S_OFF)
 
     sum_ON = 0;
     sum_OFF = 0;
-    for y1 = 1:maxX
-        for y2 = 1:maxX
-            y = [y1 y2];
-            for beta1 = 1:maxX
-                for beta2 = 1:maxX
-                    beta = [beta1 beta2];
-                    sum_ON = sum_ON + C_ON_ON(alpha - beta) * S_ON(y, beta) + ...
-                                      C_ON_OFF(alpha - beta) * S_OFF(y, beta);
-                    sum_OFF = sum_OFF + C_OFF_OFF(alpha - beta) * S_OFF(y, beta) + ...
-                                        C_OFF_ON(alpha - beta) * S_ON(y, beta);
-                end
-            end
+    for y_id = 1:N
+        y = id_to_coords(y_id, :);
+        for beta_id = 1:N
+            beta = id_to_coords(beta_id, :);
+            sum_ON = sum_ON + I(x - y) * (C_ON_ON(alpha - beta) * S_ON(y_id, beta_id) + ...
+                                          C_ON_OFF(alpha - beta) * S_OFF(y_id, beta_id));
+            sum_OFF = sum_OFF + I(x - y) * (C_OFF_OFF(alpha - beta) * S_OFF(y_id, beta_id) + ...
+                                            C_OFF_ON(alpha - beta) * S_ON(y_id, beta_id));
         end
     end
     LS_ON = lambda_dt * A(x - alpha) * sum_ON;
     LS_OFF = lambda_dt * A(x - alpha) * sum_OFF;
 end
 
-function [dS_ON, dS_OFF] = dS(x, alpha, LS_ON, LS_OFF)
-    maxX = 31;
+
+
+function [dS_ON, dS_OFF] = dS(x, alpha, S_ON, S_OFF, id_to_coords)
+    maxX = 10;
+    N = maxX * maxX;
     
     A = @(x) circle_intersect(norm(x), 5, 2.5) * (norm(x) <= 5.5);
     
-    sum_norm_A = 0;
-    for beta1 = 1:maxX
-        for beta2 = 1:maxX
-            beta = [beta1 beta2];
-            sum_norm_A = sum_norm_A + A(x - beta);
-        end
+    sum_A = 0;
+    for beta_id = 1:N
+        beta = id_to_coords(beta_id, :);
+        sum_A = sum_A + A(x - beta);
     end
     
-    sum_norm_LS = 0;
-    for beta1 = 1:maxX
-        for beta2 = 1:maxX
-            beta = [beta1 beta2];
-            [LS_ON, LS_OFF] = LS(x, beta);
-            sum_norm_LS = sum_norm_LS + LS_ON + LS_OFF;
-        end
+    sum_LS = 0;
+    for beta_id = 1:N
+        beta = id_to_coords(beta_id, :);
+        [LS_ON, LS_OFF] = LS(x, beta, S_ON, S_OFF, id_to_coords);
+        sum_LS = sum_LS + LS_ON + LS_OFF;
     end
     
-    dS_ON = LS_ON(x, alpha) - (A(x - alpha) / 2 * sum_norm_A) * sum_norm_LS;
-    dS_OFF = LS_OFF(x, alpha) - (A(x - alpha) / 2 * sum_norm_A) * sum_norm_LS;   
+    [LS_ON, LS_OFF] = LS(x, alpha, S_ON, S_OFF, id_to_coords);
+    dS_ON = LS_ON - (A(x - alpha) / (2 * sum_A)) * sum_LS;
+    dS_OFF = LS_OFF - (A(x - alpha) / (2 * sum_A)) * sum_LS;
 end

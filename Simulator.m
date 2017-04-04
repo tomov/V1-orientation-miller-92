@@ -118,15 +118,25 @@ classdef Simulator
             A = circle_intersect(Simulator.norm(id_to_diff), 5, 2.5) .* (Simulator.norm(id_to_diff) <= 5.5);
             self.A = A;
         end
+        
+        % A = C_ON_ON, A, or any other row vector with values corresponding
+        %     to coordinate differences (see id_to_diff and diff_to_id)
+        % diffs = differences (row vector) whose values we want to find in A
+        %
+        function res = get_diff(self, A, diffs)
+            res = A(self.diff_to_id(diffs(:,1) + self.diff_offset, diffs(:,2) + self.diff_offset));
+        end
 
         function [LS_ON, LS_OFF] = LS(self, x, alpha, S_ON, S_OFF)
             rc = Simulator.rc;
             maxX = Simulator.maxX;
             
-            C_ON_ON = @(x) G(x, rc) - (1/9) * G(x, 3*rc);
-            C_ON_OFF = @(x) -0.5; % ???
-            C_OFF_OFF = C_ON_ON; % ???????????
-            C_OFF_ON = C_ON_OFF; % ???????????
+            y = self.id_to_coords;
+            I_x_y = I(x - y);
+            
+            beta = self.id_to_coords;
+            C_a_b = self.get_diff(self.C_ON_ON, alpha - beta);
+            
             
             sum_ON = 0;
             sum_OFF = 0;
