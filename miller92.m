@@ -1,21 +1,24 @@
-maxX = 31;
+maxX = 31; % dimension of grid
 
 [X,Y] = meshgrid(1:1:31);
-idx_to_coords = [X(:) Y(:)];
-coords_to_idx = zeros(size(X));
-for id = 1:size(idx_to_coords, 1)
-    coords_to_idx(X(id), Y(id)) = id;
-    assert(idx_to_coords(coords_to_idx(X(id), Y(id)), 1) == X(id));
-    assert(idx_to_coords(coords_to_idx(X(id), Y(id)), 2) == Y(id));
+id_to_coords = [X(:) Y(:)]; % mapping of coordinates to index
+coords_to_id = zeros(size(X)); % mapping of index to coordinates
+for id = 1:size(id_to_coords, 1)
+    coords_to_id(X(id), Y(id)) = id;
+    assert(id_to_coords(coords_to_id(X(id), Y(id)), 1) == X(id));
+    assert(id_to_coords(coords_to_id(X(id), Y(id)), 2) == Y(id));
 end
+N = numel(X); % number of neurons in each layer
 
 
-S_ON = zeros(1, maxX);
-S_OFF = zeros(1, maxX);
+S_ON = zeros(N, N);
+S_OFF = zeros(N, N);
 
-for y1 = 1:maxX
-    for y2 = 1:maxX
-        S_ON(y1, y2) = (rand * 0.4 + 0.8) * A([y1 y2]);
+for x_id = 1:N
+    x = id_to_coords(x_id, :);
+    for alpha_id = 1:N
+        alpha = id_to_coords(alpha_id, :);
+        S_ON(x_id, alpha_id) = (rand * 0.4 + 0.8) * A([y1 y2]);
         S_OFF(y1, y2) = (rand * 0.4 + 0.8) * A([y1 y2]);
     end
 end
