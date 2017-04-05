@@ -1,7 +1,7 @@
 classdef Simulator
     
     properties (Constant = true)
-        maxX = 10;
+        maxX = 30;
         R = 5.5;    
         a = 1/2;
         r1 = 0.4;
@@ -180,15 +180,15 @@ classdef Simulator
             
             for x_id = 1:N
                 x = self.id_to_coords(x_id, :);
-                I_x_y{x_id} = self.I(x - ys); % vector of I(x - y) for all y
+                I_x_y{x_id} = self.I(repmat(x, [N 1]) - ys); % vector of I(x - y) for all y
             end
             
             for alpha_id = 1:N
                 alpha = self.id_to_coords(alpha_id, :);
-                C_ON_ON_a_b{alpha_id} = self.get_diff(self.C_ON_ON, alpha - betas); % vector of C(a - b) for all b
-                C_ON_OFF_a_b{alpha_id} = self.get_diff(self.C_ON_OFF, alpha - betas); % vector of C(a - b) for all b
-                C_OFF_OFF_a_b{alpha_id} = self.get_diff(self.C_OFF_OFF, alpha - betas); % vector of C(a - b) for all b
-                C_OFF_ON_a_b{alpha_id} = self.get_diff(self.C_OFF_ON, alpha - betas); % vector of C(a - b) for all b
+                C_ON_ON_a_b{alpha_id} = self.get_diff(self.C_ON_ON, repmat(alpha, [N 1]) - betas); % vector of C(a - b) for all b
+                C_ON_OFF_a_b{alpha_id} = self.get_diff(self.C_ON_OFF, repmat(alpha, [N 1]) - betas); % vector of C(a - b) for all b
+                C_OFF_OFF_a_b{alpha_id} = self.get_diff(self.C_OFF_OFF, repmat(alpha, [N 1]) - betas); % vector of C(a - b) for all b
+                C_OFF_ON_a_b{alpha_id} = self.get_diff(self.C_OFF_ON, repmat(alpha, [N 1]) - betas); % vector of C(a - b) for all b
             end
             
             LS_ON = zeros(size(S_ON));
