@@ -180,63 +180,35 @@ classdef Simulator
             
             for x_id = 1:N
                 x = self.id_to_coords(x_id, :);
-                I_x_y{x_id} = self.I(x - ys); % column vector of I(x - y) for all y
+                I_x_y{x_id} = self.I(x - ys); % vector of I(x - y) for all y
             end
             
-            C_ON_ON_a_b = zeros(N, N);
-            C_ON_OFF_a_b = zeros(N, N);
-            C_OFF_OFF_a_b = zeros(N, N);
-            C_OFF_ON_a_b = zeros(N, N);
             for alpha_id = 1:N
                 alpha = self.id_to_coords(alpha_id, :);
-                C_ON_ON_a_b(alpha_id, :) = self.get_diff(self.C_ON_ON, alpha - betas)'; % row vector of C(a - b) for all b
-                C_ON_OFF_a_b(alpha_id, :) = self.get_diff(self.C_ON_OFF, alpha - betas)'; % row vector of C(a - b) for all b
-                C_OFF_OFF_a_b(alpha_id, :) = self.get_diff(self.C_OFF_OFF, alpha - betas)'; % row vector of C(a - b) for all b
-                C_OFF_ON_a_b(alpha_id, :) = self.get_diff(self.C_OFF_ON, alpha - betas)'; % row vector of C(a - b) for all b
+                C_ON_ON_a_b{alpha_id} = self.get_diff(self.C_ON_ON, alpha - betas); % vector of C(a - b) for all b
+                C_ON_OFF_a_b{alpha_id} = self.get_diff(self.C_ON_OFF, alpha - betas); % vector of C(a - b) for all b
+                C_OFF_OFF_a_b{alpha_id} = self.get_diff(self.C_OFF_OFF, alpha - betas); % vector of C(a - b) for all b
+                C_OFF_ON_a_b{alpha_id} = self.get_diff(self.C_OFF_ON, alpha - betas); % vector of C(a - b) for all b
             end
-            
-            %{
-                    [y_ids, beta_ids] = meshgrid(1:N);
-                    ys = self.id_to_coords(y_ids, :);
-                    betas = self.id_to_coords(beta_ids, :);            
-                    S_ON = (rand(size(ys, 1), 1) * 0.4 + 0.8) .* self.get_diff(self.A, ys - betas);
-                    S_OFF = (rand(size(ys, 1), 1) * 0.4 + 0.8) .* self.get_diff(self.A, ys - betas);
-                    S_ON = reshape(S_ON, [N N]);
-                    S_OFF = reshape(S_OFF, [N N]);
-            %}
-            
-            alpha_ids = 1:N;
-            alphas = self.id_to_coords(alpha_ids, :);
-            
-            S_ON_rep = repmat(S_ON, [1 N]);
-            S_OFF_rep = repmat(S_OFF, [1 N]);
             
             LS_ON = zeros(size(S_ON));
             LS_OFF = zeros(size(S_OFF));
             for x_id = 1:N
-                x = self.id_to_coords(x_id, :);
-                
-                save('sim.mat');
-                summands_ON_rep = (I_x_y{x_id} * C_ON_ON_a_b(:)') .* S_ON_rep + (I_x_y{x_id} * C_ON_OFF_a_b(:)') .* S_OFF_rep;
-                summands_OFF_rep = (I_x_y{x_id} * C_OFF_OFF_a_b(:)') .* S_OFF_rep + (I_x_y{x_id} * C_OFF_ON_a_b(:)') .* S_ON_rep;
-
-                %summands_ON = (I_x_y{x_id} * C_ON_ON_a_b(alpha_id, :)) .* S_ON + (I_x_y{x_id} * C_ON_OFF_a_b(alpha_id, :)) .* S_OFF;
-                %summands_OFF = (I_x_y{x_id} * C_OFF_OFF_a_b(alpha_id, :)) .* S_OFF + (I_x_y{x_id} * C_OFF_ON_a_b(alpha_id, :)) .* S_ON;
-                summands_ON = reshape(summands_ON_rep, [N N N]); % y * alpha * beta
-                summands_OFF = reshape(summands_OFF_rep, [N N N]); % y * alpha * beta
-
+                x = self.id_to_coords(x_id, :)
                 for alpha_id = 1:N
                     alpha = self.id_to_coords(alpha_id, :);
+                    
+                    summands_ON = (I_x_y{x_id} * C_ON_ON_a_b{alpha_id}') .* S_ON + (I_x_y{x_id} * C_ON_OFF_a_b{alpha_id}') .* S_OFF;
+                    summands_OFF = (I_x_y{x_id} * C_OFF_OFF_a_b{alpha_id}') .* S_OFF + (I_x_y{x_id} * C_OFF_ON_a_b{alpha_id}') .* S_ON;
 
-                    sum_ON = sum(sum(summands_ON(:, alpha_id, :)));
-                    sum_OFF = sum(sum(summands_OFF(:, alpha_id, :)));
+                    sum_ON = sum(summands_ON(:));
+                    sum_OFF = sum(summands_OFF(:));
 
-                    % A_x_a TODO
-                    LS_ON(x_id, alpha_id) = self.lambda_dt * self.get_diff(self.A, x - alpha) * sum_ON;
-                    LS_OFF(x_id, alpha_id) = self.lambda_dt * self.get_diff(self.A, x - alpha) * sum_OFF;
+                    A_x_a = self.get_diff(self.A, x - alpha);
+                    LS_ON(x_id, alpha_id) = self.lambda_dt * A_x_a * sum_ON;
+                    LS_OFF(x_id, alpha_id) = self.lambda_dt * A_x_a * sum_OFF;
                 end
             end
-            
         end
         
         % dS for given x, alpha
