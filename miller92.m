@@ -1,6 +1,6 @@
 miller92_sanity; % include lambdas
 
-maxX = 10; % dimension of grid
+maxX = 6; % dimension of grid
 
 [X,Y] = meshgrid(1:1:maxX);
 id_to_coords = [X(:) Y(:)]; % mapping of coordinates to index
@@ -50,9 +50,10 @@ for i = 1:size(X, 1)
 end
 figure;
 surf(Z_OFF,'EdgeColor','None');
+save('LS_surf.mat');
 %}
 
-
+%{
 [X,Y] = meshgrid(1 : maxX);
 Z_ON = zeros(size(X));
 Z_OFF = zeros(size(X));
@@ -68,7 +69,8 @@ for i = 1:size(X, 1)
 end
 figure;
 surf(Z_ON,'EdgeColor','None');
-
+save('dS_surf.mat');
+%}
 
 
 % technically LS * dt
